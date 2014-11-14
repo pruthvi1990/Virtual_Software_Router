@@ -1,0 +1,141 @@
+/*-----------------------------------------------------------------------------
+ * File: sr_router.h
+ * Date: ?
+ * Authors: Guido Apenzeller, Martin Casado, Virkam V.
+ * Contact: casado@stanford.edu
+ * 90904102 
+ *---------------------------------------------------------------------------*/
+
+#ifndef SR_ROUTER_H
+#define SR_ROUTER_H
+
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <stdio.h>
+
+#include "sr_protocol.h"
+#ifdef VNL
+#include "vnlconn.h"
+#endif
+
+
+#ifndef TCP
+#define TCP 6
+#endif
+
+#ifndef UDP
+#define UDP 17
+#endif
+
+
+
+#ifndef ARPC_TIMEOUT
+#define ARPC_TIMEOUT 15
+#endif
+
+#ifndef ARPQ_MAXREQ
+#define ARPQ_MAXREQ 5
+#endif
+
+#ifndef arp_broadcast_IP
+#define arp_broadcast_IP 0xff
+#endif
+
+#ifndef ICMP_HDR_LEN
+#define ICMP_HDR_LEN 8
+#endif
+
+#ifndef ICMP_ECHO_REQ
+#define ICMP_ECHO_REQ 8
+#endif
+
+#ifndef ICMP_TTL
+#define ICMP_TTL 11
+#endif
+
+#ifndef ICMP_UNREACH
+#define ICMP_UNREACH 3
+#endif
+
+#ifndef ICMP_HOST_UNREACH
+#define ICMP_HOST_UNREACH 1
+#endif
+
+#ifndef ICMP_PORT_UNREACH
+#define ICMP_PORT_UNREACH 3
+#endif
+
+#ifndef ICMP_HDR_LEN
+#define ICMP_HDR_LEN 8
+#endif
+
+//used only if IP unreachable
+#ifndef ICMP_DATA_LEN
+#define ICMP_DATA_LEN 8
+#endif
+
+/* we dont like this debug , but what to do for varargs ? */
+#ifdef _DEBUG_
+#define Debug(x, args...) printf(x, ## args)
+#define DebugMAC(x) \
+  do { int ivyl; for(ivyl=0; ivyl<5; ivyl++) printf("%02x:", \
+  (unsigned char)(x[ivyl])); printf("%02x",(unsigned char)(x[5])); } while (0)
+#else
+#define Debug(x, args...) do{}while(0)
+#define DebugMAC(x) do{}while(0)
+#endif
+
+#define INIT_TTL 255
+#define PACKET_DUMP_SIZE 1024
+
+/* forward declare */
+struct sr_if;
+struct sr_rt;
+
+/* ----------------------------------------------------------------------------
+ * struct sr_instance
+ *
+ * Encapsulation of the state for a single virtual router.
+ *
+ * -------------------------------------------------------------------------- */
+
+struct sr_instance
+{
+    int  sockfd;   /* socket to server */
+#ifdef VNL
+    struct VnlConn* vc;
+#endif
+    char user[32]; /* user name */
+    char host[32]; /* host name */
+    char template[30]; /* template name if any */
+    char auth_key_fn[64]; /* auth key filename */
+    unsigned short topo_id;
+    struct sockaddr_in sr_addr; /* address to server */
+    struct sr_if* if_list; /* list of interfaces */
+    struct sr_rt* routing_table; /* routing table */
+    FILE* logfile;
+};
+
+/* -- sr_main.c -- */
+int sr_verify_routing_table(struct sr_instance* sr);
+
+/* -- sr_vns_comm.c -- */
+int sr_send_packet(struct sr_instance* , uint8_t* , unsigned int , const char*);
+int sr_connect_to_server(struct sr_instance* ,unsigned short , char* );
+int sr_read_from_server(struct sr_instance* );
+
+/* -- sr_router.c -- */
+void sr_init(struct sr_instance* );
+void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
+
+/* -- sr_if.c -- */
+void sr_add_interface(struct sr_instance* , const char* );
+void sr_set_ether_ip(struct sr_instance* , uint32_t );
+void sr_set_ether_addr(struct sr_instance* , const unsigned char* );
+void sr_print_if_list(struct sr_instance* );
+
+/* -- sr_router.c --
+void arp_reqeust_packet(struct sr_arphdr *arp_hdr, uint32_t sr_ip, unsigned char *sr_hw_addr, uint32_t dest_ip);
+*/
+
+#endif /* SR_ROUTER_H */
